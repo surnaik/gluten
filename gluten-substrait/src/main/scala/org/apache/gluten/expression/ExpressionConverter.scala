@@ -450,7 +450,8 @@ object ExpressionConverter extends SQLConfHelper with Logging {
           if child.dataType
             .isInstanceOf[DecimalType] && !BackendsApiManager.getSettings.transformCheckOverflow =>
         replaceWithExpressionTransformer0(child, attributeSeq, expressionsMap)
-      case _: NormalizeNaNAndZero | _: PromotePrecision | _: TaggingExpression =>
+      case _: NormalizeNaNAndZero | _: PromotePrecision | _: TaggingExpression |
+          _: DynamicPruningExpression =>
         ChildTransformer(
           substraitExprName,
           replaceWithExpressionTransformer0(expr.children.head, attributeSeq, expressionsMap),
@@ -504,6 +505,12 @@ object ExpressionConverter extends SQLConfHelper with Logging {
           replaceWithExpressionTransformer0(n.left, attributeSeq, expressionsMap),
           replaceWithExpressionTransformer0(n.right, attributeSeq, expressionsMap),
           n
+        )
+      case a: AtLeastNNonNulls =>
+        BackendsApiManager.getSparkPlanExecApiInstance.genAtLeastNNonNullsTransformer(
+          substraitExprName,
+          a.children.map(replaceWithExpressionTransformer0(_, attributeSeq, expressionsMap)),
+          a
         )
       case m: MakeTimestamp =>
         BackendsApiManager.getSparkPlanExecApiInstance.genMakeTimestampTransformer(
